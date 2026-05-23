@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { getAdminDb } from "@/lib/firebase-admin";
 
 export async function GET() {
   try {
-    const q = query(collection(db, "miss_you_events"), orderBy("timestamp", "asc"));
-    const snap = await getDocs(q);
+    const snap = await getAdminDb().collection("miss_you_events").orderBy("timestamp", "asc").get();
 
     const events = snap.docs.map((doc) => {
       const data = doc.data();

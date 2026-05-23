@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { sendLineMessage } from "@/lib/line";
 
 const LEVELS: Record<string, { message: string; emoji: string }> = {
@@ -17,10 +17,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid level" }, { status: 400 });
     }
 
-    await addDoc(collection(db, "miss_you_events"), {
+    await getAdminDb().collection("miss_you_events").add({
       level,
       message: levelData.message,
-      timestamp: serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
 
     await sendLineMessage(levelData.message);

@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  addDoc,
-  getDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 // POST /api/quiz - create a new quiz session
 // GET /api/quiz?id=xxx - get session
@@ -18,8 +11,8 @@ export async function GET(req: NextRequest) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const snap = await getDoc(doc(db, "quiz_sessions", id));
-  if (!snap.exists()) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const snap = await getAdminDb().collection("quiz_sessions").doc(id).get();
+  if (!snap.exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ id: snap.id, ...snap.data() });
 }
@@ -28,13 +21,13 @@ export async function POST(req: NextRequest) {
   const { setIndex } = await req.json();
   const idx = typeof setIndex === "number" ? setIndex : 0;
 
-  const ref = await addDoc(collection(db, "quiz_sessions"), {
+  const ref = await getAdminDb().collection("quiz_sessions").add({
     setIndex: idx,
     questionIndex: 0,
     person1Answer: null,
     person2Answer: null,
     results: [],
-    createdAt: serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
     status: "waiting_p1",
   });
 
@@ -47,11 +40,11 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const ref = doc(db, "quiz_sessions", id);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const ref = getAdminDb().collection("quiz_sessions").doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data = snap.data();
+  const data = snap.data()!;
   const update: Record<string, unknown> = {};
 
   if (person === "p1") {
@@ -69,7 +62,7 @@ export async function PATCH(req: NextRequest) {
     update.status = "waiting_p1";
   }
 
-  await updateDoc(ref, update);
-  const updated = await getDoc(ref);
+  await ref.update(update);
+  const updated = await ref.get();
   return NextResponse.json({ id: updated.id, ...updated.data() });
 }
