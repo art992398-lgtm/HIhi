@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import NavBar from "./NavBar";
 
 const LEVELS = [
@@ -36,6 +37,26 @@ export default function MissYouPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [senderRole, setSenderRole] = useState<"me" | "partner">("me");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const roleFromQuery = searchParams.get("role");
+    const storedRole = window.localStorage.getItem("miss-you-role");
+    const role = roleFromQuery === "partner" || roleFromQuery === "me"
+      ? roleFromQuery
+      : storedRole === "partner" || storedRole === "me"
+        ? storedRole
+        : process.env.NEXT_PUBLIC_MISS_YOU_ROLE === "partner"
+          ? "partner"
+          : "me";
+
+    setSenderRole(role);
+  }, [searchParams]);
+
+  useEffect(() => {
+    window.localStorage.setItem("miss-you-role", senderRole);
+  }, [senderRole]);
 
   async function handlePress(level: string) {
     setLoading(level);
@@ -45,7 +66,7 @@ export default function MissYouPage() {
       const res = await fetch("/api/miss-you", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level }),
+        body: JSON.stringify({ level, senderRole }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "เกิดข้อผิดพลาด");
@@ -65,6 +86,23 @@ export default function MissYouPage() {
           <div className="text-7xl mb-4 animate-pulse-heart inline-block">💌</div>
           <h1 className="text-3xl font-bold text-pink-600 mb-2">คิดถึงนะ</h1>
           <p className="text-pink-400 text-sm">กดเพื่อบอกให้แฟนรู้ว่าคุณคิดถึงเขา</p>
+          <div className="mt-4 inline-flex rounded-full bg-pink-50 border border-pink-200 p-1 text-sm">
+            <button
+              type="button"
+              onClick={() => setSenderRole("me")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${senderRole === "me" ? "bg-pink-500 text-white" : "text-pink-500"}`}
+            >
+              ผม
+            </button>
+            <button
+              type="button"
+              onClick={() => setSenderRole("partner")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${senderRole === "partner" ? "bg-pink-500 text-white" : "text-pink-500"}`}
+            >
+              partner
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-pink-400">ตอนนี้ส่งในนาม: {senderRole === "me" ? "ผม" : "partner"}</p>
         </div>
 
         {/* Buttons */}

@@ -11,19 +11,24 @@ const LEVELS: Record<string, { message: string; emoji: string }> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { level } = await req.json();
+    const { level, senderRole } = await req.json();
     const levelData = LEVELS[level];
     if (!levelData) {
       return NextResponse.json({ error: "Invalid level" }, { status: 400 });
     }
 
+    if (senderRole !== "me" && senderRole !== "partner") {
+      return NextResponse.json({ error: "Invalid sender role" }, { status: 400 });
+    }
+
     await getAdminDb().collection("miss_you_events").add({
       level,
+      senderRole,
       message: levelData.message,
       timestamp: FieldValue.serverTimestamp(),
     });
 
-    await sendLineMessage(levelData.message);
+    await sendLineMessage(levelData.message, senderRole);
 
     return NextResponse.json({ ok: true, message: levelData.message });
   } catch (err: unknown) {
