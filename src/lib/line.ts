@@ -2,14 +2,14 @@ const LINE_API_URL = "https://api.line.me/v2/bot/message/push";
 
 export async function sendLineMessage(message: string) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  const userId = process.env.LINE_PARTNER_USER_ID;
+  const recipientUserId = process.env.LINE_RECIPIENT_USER_ID ?? process.env.LINE_PARTNER_USER_ID;
 
-  if (!token || !userId) {
-    throw new Error("LINE credentials not configured");
+  if (!token || !recipientUserId) {
+    throw new Error("LINE credentials not configured. Set LINE_CHANNEL_ACCESS_TOKEN and LINE_RECIPIENT_USER_ID.");
   }
 
   const body = {
-    to: userId,
+    to: recipientUserId,
     messages: [
       {
         type: "flex",
